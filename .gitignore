@@ -108,3 +108,9 @@ dist
 
 # OS
 .DS_Store
+
+# Nix
+.direnv
+
+# Direnv
+.envrc
