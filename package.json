@@ -1,7 +1,7 @@
 {
   "name": "firebot-custom-script-spinwheel",
   "scriptOutputName": "SpinWheel",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "A spin wheel for the overlay",
   "main": "",
   "scripts": {
