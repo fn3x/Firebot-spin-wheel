@@ -53,6 +53,13 @@ export interface EventData {
     uuid: string;
     props: Props;
     duration: number;
+    pointerType: string;
+    pointerSrc: string;
+    pointerSize: number;
+    pointerKick: number;
+    tickSoundType: string;
+    tickSoundSrc: string;
+    tickVolume: number;
 }
 
 export interface EV {

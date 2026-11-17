@@ -42,8 +42,35 @@ interface EffectModel {
   easingValue: number;
   easingLabel: string;
   duration: number;
+  pointerType: string;
+  pointerFile: string;
+  pointerUrl: string;
+  pointerSize: number;
+  pointerKick: number;
+  tickSoundType: string;
+  tickSoundFile: string;
+  tickSoundUrl: string;
+  tickVolume: number;
   //html: string;
 }
+
+// local file → resource token URL path the overlay can load, url → as is, otherwise empty
+const resolveSource = (
+  resourceTokenManager: ScriptModules["resourceTokenManager"],
+  type: string,
+  file: string,
+  url: string,
+  length: number
+): string => {
+  if (type === "local" && file) {
+    const token = resourceTokenManager.storeResourcePath(file, length);
+    return `/resource/${encodeURIComponent(String(token))}`;
+  }
+  if (type === "url" && url) {
+    return url;
+  }
+  return "";
+};
 
 export function overlaySpinWheelEffectType(
   request: any,
@@ -159,6 +186,22 @@ export function overlaySpinWheelEffectType(
 
       if ($scope.effect.imageType == null) {
         $scope.effect.imageType = "url";
+      }
+
+      if ($scope.effect.pointerType == null) {
+        $scope.effect.pointerType = "default";
+      }
+      if ($scope.effect.pointerSize == null) {
+        $scope.effect.pointerSize = 16;
+      }
+      if ($scope.effect.pointerKick == null) {
+        $scope.effect.pointerKick = 28;
+      }
+      if ($scope.effect.tickSoundType == null) {
+        $scope.effect.tickSoundType = "default";
+      }
+      if ($scope.effect.tickVolume == null) {
+        $scope.effect.tickVolume = 35;
       }
 
       $scope.showOverlayInfoModal = function (overlayInstance: string) {
@@ -289,7 +332,16 @@ export function overlaySpinWheelEffectType(
         uuid: randomUUID(),
         length: event.effect.length,
         props: event.effect.EventData.props,
-        duration: event.effect.duration ?? 1
+        duration: event.effect.duration ?? 1,
+        pointerType: event.effect.pointerType ?? "default",
+        pointerSrc: resolveSource(resourceTokenManager, event.effect.pointerType, event.effect.pointerFile,
+          event.effect.pointerUrl, event.effect.length),
+        pointerSize: event.effect.pointerSize ?? 16,
+        pointerKick: event.effect.pointerKick ?? 28,
+        tickSoundType: event.effect.tickSoundType ?? "default",
+        tickSoundSrc: resolveSource(resourceTokenManager, event.effect.tickSoundType, event.effect.tickSoundFile,
+          event.effect.tickSoundUrl, event.effect.length),
+        tickVolume: event.effect.tickVolume ?? 35
       };
 
       if (event.effect.imageType == null) {
@@ -368,58 +420,16 @@ export function overlaySpinWheelEffectType(
           // Frontend Code Here
           //const html = require('./spinhtml.html');
 
-          const html = /*html*/`
-                              <div id={{WHEELSPINDIVID}}  class="position-wrapper middle-center">
-                                    <div id="spin-wheel" class="spin-wheel inner-position">
-                                        <style>
-                                            @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400&display=swap');
-                                            @import url('https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400&display=swap');
-                                            @import url('https://fonts.googleapis.com/css2?family=Pragati+Narrow&display=swap');
-                                            @import url('https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&display=swap');
-
-                                            * {
-                                                margin: 0;
-                                                padding: 0;
-                                                font-family: 'Lucida Grande', sans-serif;
-                                                font-size: 15px;
-                                                -webkit-tap-highlight-color: transparent;
-                                                user-select: none;
-                                                /* Prevent selecting ui text when dragging */
-                                            }
-
-                                            .spin-wheel {
-                                                /* Prevent pull-down-to-refresh gesture */
-                                                overscroll-behavior-y: contain;
-                                                height: 100%;
-                                                /* Prevent iOS rubber-band effect */
-                                                position: fixed;
-                                                width: 100%;
-                                                /* Prevent browser from handling touch events */
-                                                touch-action: none;
-                                                display: flex;
-                                                flex-direction: column;
-                                                justify-items: stretch;
-                                                align-items: stretch;
-                                            }
-
-                                            .wheel-wrapper {
-                                                overflow: hidden;
-                                                height: 100%;
-                                                width: 100%;
-                                            }
-
-                                            select {
-                                                padding: 2px;
-                                            }
-
-                                            label {
-                                                margin-right: 5px;
-                                            }
-                                        </style>
-                                        <div class="wheel-wrapper"></div>
-                                    </div>
-                                </div>
-          `;
+          // inner content of the wheel
+          const html = /*html*/`<div class="spin-wheel inner-position"><div class="wheel-wrapper"></div></div>`;
+          // fonts + base styles once per overlay page (a <style> with @import inside the wheel didn't reliably apply)
+          if (document.getElementById("cky-spin-wheel-fonts") == null) {
+            const fonts = document.createElement("link");
+            fonts.id = "cky-spin-wheel-fonts";
+            fonts.rel = "stylesheet";
+            fonts.href = "https://fonts.googleapis.com/css2?family=Rubik:wght@400&family=Amatic+SC:wght@400&family=Pragati+Narrow&family=Gloria+Hallelujah&display=swap";
+            document.head.appendChild(fonts);
+          }
 
           function loadHtmlAndExecute() {
             const { uuid, length, props } = event;
@@ -436,9 +446,13 @@ export function overlaySpinWheelEffectType(
               }
             }
 
-            $("#wrapper").append(html.replace("{{WHEELSPINDIVID}}", uuid));
-
-            const container = document.getElementById(uuid).getElementsByClassName("wheel-wrapper")[0];
+            // wheel fills the whole overlay page (size/place it with the browser source in OBS, e.g. a separate overlay instance)
+            $("#wrapper").append(`<div id="${uuid}" class="position-wrapper middle">${html}</div>`);
+            const wheelBox = document.getElementById(uuid).getElementsByClassName("spin-wheel")[0] as HTMLElement;
+            const container = wheelBox.getElementsByClassName("wheel-wrapper")[0] as HTMLElement;
+            // layout as inline styles: the overlay's global "canvas { 100vw x 100vh }" rule must not stretch the wheel
+            wheelBox.style.cssText = "position:fixed;top:0;left:0;width:100vw;height:100vh;touch-action:none;user-select:none;";
+            container.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;overflow:visible;";
 
             //console.log('2');
             const easingFunctions = [
@@ -494,6 +508,119 @@ export function overlaySpinWheelEffectType(
             );
             // @ts-ignore
             window.wheel = new spinWheel.Wheel(container, props);
+            // --- pointer that flaps + tick sound, on every slice passing the pointer ---
+            const spinDirection = 1; // spinToItem below spins clockwise
+            const tickVolume = Math.max(0, Math.min(100, Number(data.tickVolume ?? 35))) / 100;
+            const absUrl = (src: string) => (src && src.startsWith("/") ? `${window.location.protocol}//${window.location.host}${src}` : src);
+            // @ts-ignore
+            const audioCtx: AudioContext = window.__ckyTickCtx ?? (window.__ckyTickCtx = new AudioContext());
+            let tickBuffer: AudioBuffer = null;
+            let tickElement: HTMLAudioElement = null;
+            const tickSrc = data.tickSoundType === "local" || data.tickSoundType === "url" ? absUrl(data.tickSoundSrc) : "";
+            if (tickSrc) {
+              fetch(tickSrc)
+                .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
+                .then((b) => audioCtx.decodeAudioData(b))
+                .then((buf) => { tickBuffer = buf; })
+                .catch((err) => {
+                  // e.g. a URL without CORS: fall back to a plain audio element
+                  console.warn("spin wheel: could not preload tick sound, using <audio>", err);
+                  tickElement = new Audio(tickSrc);
+                  tickElement.preload = "auto";
+                });
+            }
+            const synthTick = () => {
+              const t = audioCtx.currentTime;
+              const osc = audioCtx.createOscillator();
+              const gain = audioCtx.createGain();
+              osc.type = "triangle";
+              osc.frequency.setValueAtTime(2200, t);
+              osc.frequency.exponentialRampToValueAtTime(700, t + 0.03);
+              gain.gain.setValueAtTime(Math.max(tickVolume, 0.0001), t);
+              gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+              osc.connect(gain).connect(audioCtx.destination);
+              osc.start(t);
+              osc.stop(t + 0.05);
+            };
+            let lastTick = 0;
+            const playTick = () => {
+              if (data.tickSoundType === "none" || tickVolume <= 0) return;
+              const now = performance.now();
+              if (now - lastTick < 25) return; // at most ~40 ticks per second
+              lastTick = now;
+              try {
+                if (audioCtx.state === "suspended") void audioCtx.resume();
+                if (tickBuffer) {
+                  const source = audioCtx.createBufferSource();
+                  const gain = audioCtx.createGain();
+                  gain.gain.value = tickVolume;
+                  source.buffer = tickBuffer;
+                  source.connect(gain).connect(audioCtx.destination);
+                  source.start();
+                } else if (tickElement) {
+                  const a = tickElement.cloneNode() as HTMLAudioElement;
+                  a.volume = tickVolume;
+                  void a.play();
+                } else if (!tickSrc) {
+                  synthTick();
+                }
+              } catch (err) {
+                console.warn("spin wheel: tick sound failed", err);
+              }
+            };
+
+            let flap: HTMLElement = null;
+            if (data.pointerType !== "none") {
+              const frame = document.createElement("div");
+              frame.style.cssText = "position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;z-index:2;";
+              flap = document.createElement("div");
+              flap.style.cssText = "position:absolute;transform-origin:50% 0;";
+              const pointerSrc = data.pointerType === "local" || data.pointerType === "url" ? absUrl(data.pointerSrc) : "";
+              if (pointerSrc) {
+                const img = document.createElement("img");
+                img.src = pointerSrc;
+                img.style.cssText = "display:block;width:100%;height:100%;object-fit:contain;object-position:50% 0;";
+                flap.appendChild(img);
+              } else {
+                flap.innerHTML = `<svg viewBox="0 0 40 60" width="100%" height="100%" style="display:block;overflow:visible;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))">
+                    <path d="M4 4 Q20 -2 36 4 L22 56 Q20 60 18 56 Z" fill="#ffffff" stroke="#000000" stroke-width="3" stroke-linejoin="round"/>
+                    <circle cx="20" cy="10" r="4" fill="#000000"/></svg>`;
+              }
+              frame.appendChild(flap);
+              container.appendChild(frame);
+              const sizePct = Math.max(1, Number(data.pointerSize ?? 16)) / 100;
+              const placePointer = () => {
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                const r = (props.radius ?? 0.95) * Math.min(w, h) / 2;
+                const len = r * sizePct;
+                const wid = pointerSrc ? len : len * 0.66;
+                // @ts-ignore
+                const off = props.offset ?? { w: 0, h: 0 };
+                frame.style.left = `${w / 2 + (off.w ?? 0) * r * 2 / 100}px`;
+                frame.style.top = `${h / 2 + (off.h ?? 0) * r * 2 / 100}px`;
+                frame.style.transform = `rotate(${props.pointerAngle ?? 0}deg) translateY(${-(r + len * 0.3)}px)`;
+                flap.style.width = `${wid}px`;
+                flap.style.height = `${len}px`;
+                flap.style.left = `${-wid / 2}px`;
+                flap.style.top = "0px";
+              };
+              placePointer();
+              new ResizeObserver(placePointer).observe(container);
+            }
+            const kick = Number(data.pointerKick ?? 28);
+
+            // @ts-ignore
+            wheel.onCurrentIndexChange = () => {
+              playTick();
+              if (flap && kick > 0) {
+                flap.getAnimations().forEach((a) => a.cancel());
+                flap.animate(
+                  [{ transform: `rotate(${-spinDirection * kick}deg)` }, { transform: "rotate(0deg)" }],
+                  { duration: 220, easing: "cubic-bezier(.25,1.8,.5,1)" }
+                );
+              }
+            };
             function fetchWinningItemIndex() {
               return getRandomInt(0, props.items.length);
             }

@@ -381,6 +381,97 @@
           <eos-overlay-instance effect="effect" class="setting-padtop"></eos-overlay-instance>
         </div>
     -->
+    <setting-container header="Pointer" pad-top="true" collapsed="true">
+        <div class="controls-fb-inline" style="padding-bottom: 5px;">
+            <label class="control-fb control--radio">Default
+                <input type="radio" ng-model="effect.pointerType" value="default" />
+                <div class="control__indicator"></div>
+            </label>
+            <label class="control-fb control--radio">Local file
+                <input type="radio" ng-model="effect.pointerType" value="local" />
+                <div class="control__indicator"></div>
+            </label>
+            <label class="control-fb control--radio">URL
+                <input type="radio" ng-model="effect.pointerType" value="url" />
+                <div class="control__indicator"></div>
+            </label>
+            <label class="control-fb control--radio">None
+                <input type="radio" ng-model="effect.pointerType" value="none" />
+                <div class="control__indicator"></div>
+            </label>
+        </div>
+        <div ng-if="effect.pointerType === 'local'" style="display: flex;flex-direction: row;align-items: center;">
+            <file-chooser model="effect.pointerFile"
+                options="{ filters: [ {name: 'Image', extensions: ['svg', 'png', 'gif', 'webp', 'jpg', 'jpeg']} ]}"></file-chooser>
+        </div>
+        <div ng-if="effect.pointerType === 'url'">
+            <input type="text" class="form-control" ng-model="effect.pointerUrl" placeholder="Enter url" replace-variables>
+        </div>
+        <div ng-if="effect.pointerType === 'local' || effect.pointerType === 'url'" class="effect-info alert alert-info">
+            Draw the pointer pointing <b>down</b> (tip at the bottom). It hinges at its top-center and is turned
+            to face the wheel center at the Pointer Angle.
+        </div>
+        <div ng-if="effect.pointerType !== 'none'">
+            <div style="margin-top: 10px;"><b>Pointer Angle</b> (0 = top, 90 = right)</div>
+            <div class="volume-slider-wrapper">
+                <rzslider rz-slider-model="effect.EventData.props.pointerAngle" rz-slider-options="
+                    { floor: 0, ceil: 359, step: 1, precision: 1, hideLimitLabels: true, showSelectionBar: true }"></rzslider>
+            </div>
+            <div style="margin-top: 10px;"><b>Pointer Size</b> (% of the wheel radius)</div>
+            <div class="volume-slider-wrapper">
+                <rzslider rz-slider-model="effect.pointerSize" rz-slider-options="
+                    { floor: 5, ceil: 60, step: 1, precision: 1, hideLimitLabels: true, showSelectionBar: true }"></rzslider>
+            </div>
+            <div style="margin-top: 10px;"><b>Flap Strength</b> (degrees the pointer flicks per slice)</div>
+            <div class="volume-slider-wrapper">
+                <rzslider rz-slider-model="effect.pointerKick" rz-slider-options="
+                    { floor: 0, ceil: 60, step: 1, precision: 1, hideLimitLabels: true, showSelectionBar: true }"></rzslider>
+            </div>
+        </div>
+        <div class="effect-info alert alert-warning">
+            If your wheel Image has a pointer drawn in it, use an image without one (or clear the Image) to avoid two pointers.
+        </div>
+    </setting-container>
+
+    <setting-container header="Tick Sound" pad-top="true" collapsed="true">
+        <div class="controls-fb-inline" style="padding-bottom: 5px;">
+            <label class="control-fb control--radio">Default
+                <input type="radio" ng-model="effect.tickSoundType" value="default" />
+                <div class="control__indicator"></div>
+            </label>
+            <label class="control-fb control--radio">Local file
+                <input type="radio" ng-model="effect.tickSoundType" value="local" />
+                <div class="control__indicator"></div>
+            </label>
+            <label class="control-fb control--radio">URL
+                <input type="radio" ng-model="effect.tickSoundType" value="url" />
+                <div class="control__indicator"></div>
+            </label>
+            <label class="control-fb control--radio">None
+                <input type="radio" ng-model="effect.tickSoundType" value="none" />
+                <div class="control__indicator"></div>
+            </label>
+        </div>
+        <div ng-if="effect.tickSoundType === 'local'" style="display: flex;flex-direction: row;align-items: center;">
+            <file-chooser model="effect.tickSoundFile"
+                options="{ filters: [ {name: 'Audio', extensions: ['mp3', 'ogg', 'oga', 'wav', 'flac', 'm4a', 'webm']} ]}"></file-chooser>
+        </div>
+        <div ng-if="effect.tickSoundType === 'url'">
+            <input type="text" class="form-control" ng-model="effect.tickSoundUrl" placeholder="Enter url" replace-variables>
+        </div>
+        <div ng-if="effect.tickSoundType !== 'none'">
+            <div style="margin-top: 10px;"><b>Volume</b></div>
+            <div class="volume-slider-wrapper">
+                <rzslider rz-slider-model="effect.tickVolume" rz-slider-options="
+                    { floor: 0, ceil: 100, step: 1, precision: 1, hideLimitLabels: true, showSelectionBar: true }"></rzslider>
+            </div>
+            <div class="effect-info alert alert-info">
+                Plays once per slice passing the pointer. Use a very short sound (under ~0.1 s).
+                In OBS, tick "Control audio via OBS" on the overlay browser source to hear it on stream.
+            </div>
+        </div>
+    </setting-container>
+
     <setting-container header="Animations" pad-top="true" collapsed="true">
         <eos-enter-exit-animations effect="effect" class="setting-padtop"></eos-enter-exit-animations>
     </setting-container>
